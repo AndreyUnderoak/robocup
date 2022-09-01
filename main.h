@@ -7,7 +7,7 @@
 #include <unistd.h>
 #include <termios.h>
 
-#include "include/arm_kinematics.h"
+#include "include/arm_kinematics.hpp"
 
 using namespace youbot;
 
