@@ -1,17 +1,97 @@
 #include "main.h"
-#include <vector>
 
-double to_rad(double a){
-	return a * M_PI / 180;
-}
+
 
 int main(){
-    Arm_kinematics arm_kinematics;
-    // Arm_kinematics& arm_kc = arm_kinematics;
-    double theta_array[5] = {to_rad(169), to_rad(65), to_rad(-146), to_rad(102), to_rad(167)};
-    std::vector<double> ver = {to_rad(169), to_rad(65), to_rad(-146), to_rad(102), to_rad(167)};
-    // std::cout << ver << std::endl;
-    std::cout << arm_kinematics.forward(ver) << std::endl;
+    /* configuration flags for different system configuration (e.g. base without arm)*/
+    bool youBotHasBase = false;
+    bool youBotHasArm = false;
+
+    /* define velocities */
+	double translationalVelocity = 0.05; //meter_per_second
+	double rotationalVelocity = 0.2; //radian_per_second
+
+	/* create handles for youBot base and manipulator (if available) */
+	YouBotBase* myYouBotBase = 0;
+	YouBotManipulator* myYouBotManipulator = 0;
+
+	//kinematics
+	Arm_kinematics arm_kinematics;
+
+    try {
+		myYouBotBase = new YouBotBase("youbot-base", YOUBOT_CONFIGURATIONS_DIR);
+		myYouBotBase->doJointCommutation();
+
+		youBotHasBase = true;
+	} catch (std::exception& e) {
+		LOG(warning) << e.what();
+		youBotHasBase = false;
+	}
+
+	try {
+		myYouBotManipulator = new YouBotManipulator("youbot-manipulator", YOUBOT_CONFIGURATIONS_DIR);
+		myYouBotManipulator->doJointCommutation();
+		myYouBotManipulator->calibrateManipulator();
+
+		youBotHasArm = true;
+	} catch (std::exception& e) {
+		LOG(warning) << e.what();
+		youBotHasArm = false;
+	}
+
+
+    /*
+	* Variable for the base.
+	* Here "boost units" is used to set values in OODL, that means you have to set a value and a unit.
+	*/
+	quantity<si::velocity> longitudinalVelocity = 0 * meter_per_second;
+	quantity<si::velocity> transversalVelocity = 0 * meter_per_second;
+	quantity<si::angular_velocity> angularVelocity = 0 * radian_per_second;
+
+	/* Variable for the arm. */
+	JointAngleSetpoint desiredJointAngle;
+
+	try {
+		/*
+		 * Simple sequence of commands to the youBot:
+		 */
+
+		if (youBotHasArm) {
+			std::vector<double> theta_array_goal = {0,0,0,0,0};
+			std::vector<double> coor = arm_kinematics.get_coors(arm_kinematics.forward(theta_array_goal));
+			std::cout << "coor = " << std::endl;
+				for(size_t i = 0; i < 3; i++)
+		            std::cout << coor.at(i) << std::endl;
+			try{
+				std::vector<double> theta_array = arm_kinematics.inverse(coor, ALBOW_UP, ALBOW_UP, 0, M_PI/4);
+				std::cout << "Theta array = " << std::endl;
+				for(size_t i = 0; i < 5; i++)
+		            std::cout << theta_array.at(i) << std::endl;
+
+				std::cout << "done" << std::endl;
+				myYouBotManipulator->setJointData(arm_kinematics.get_youbot_angles(theta_array));
+				SLEEP_MILLISEC(2000);
+			}
+			catch(const char* msg) {
+				std::cout << msg << std::endl;
+			}		
+		}
+        } catch (std::exception& e) {
+		std::cout << e.what() << std::endl;
+		std::cout << "unhandled exception" << std::endl;
+	}
+
+	/* clean up */
+	if (myYouBotBase) {
+		delete myYouBotBase;
+		myYouBotBase = 0;
+	}
+	if (myYouBotManipulator) {
+		delete myYouBotManipulator;
+		myYouBotManipulator = 0;
+	}
+
+	LOG(info) << "Done.";
 
 	return 0;
 }
