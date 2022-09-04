@@ -19,16 +19,26 @@ using namespace youbot;
 #define ALBOW_UP 1
 #define ALBOW_DOWN 2
 
+class Arm_angles{
+    public:
+        std::map<uint32_t, std::vector<double>> theta_arrays;
+
+        void                add_conf(std::vector<double> theta_array, uint8_t conf_t_1, uint8_t conf_t_3);
+        std::vector<double> get_theta_array(uint8_t conf_t_1, uint8_t conf_t_3);
+        bool                is_exist(uint8_t conf_t_1, uint8_t conf_t_3);
+        std::vector<double> get_any();
+};
 
 class Arm_kinematics{
     public:
         Arm_kinematics();
 
-        Matrix<double, 4, 4> forward(std::vector<double> theta_array);
-        std::vector<double>  inverse(std::vector<double> coordinates, uint8_t conf_t_1, uint8_t conf_t_3, double ee_y_orientation, double ee_z_orientation);
-
+        Matrix<double, 4, 4>            forward(std::vector<double> theta_array);
+        std::vector<double>             inverse(std::vector<double> coordinates, uint8_t conf_t_1, uint8_t conf_t_3, double ee_y_orientation, double ee_z_orientation);
         std::vector<JointAngleSetpoint> get_youbot_angles(std::vector<double> theta_array);
         
+        Arm_angles                      inverse_get_all(std::vector<double> coordinates, double ee_y_orientation, double ee_z_orientation);
+
         struct link {
             bool flip; double offset; double d; double a; double alpha;
             link(bool flip, double offset, double d, double a, double alpha);
@@ -56,8 +66,8 @@ class Arm_kinematics{
 
         //Thetas for INVERSE
         double theta_1(double x, double y, uint8_t conf_t_1);
-        double theta_2(std::vector<double> coordinates, uint8_t conf_t_1, uint8_t conf_t_3);
-        double theta_3(std::vector<double> coordinates, uint8_t conf_t_1, uint8_t conf_t_3);
+        double theta_2(std::vector<double> coordinates, double theta_1, uint8_t conf_t_1, uint8_t conf_t_3);
+        double theta_3(std::vector<double> coordinates, double theta_1, uint8_t conf_t_1, uint8_t conf_t_3);
         double theta_4(Matrix<double, 3, 3> r35);
         double theta_5(Matrix<double, 3, 3> r35);
 
@@ -67,7 +77,6 @@ class Arm_kinematics{
 
         Matrix<double, 3, 3> inverse_orientation(std::vector<double> theta_array, Matrix<double, 3, 3> r05);
 
-        double to_radians(double angle){
-            return angle * M_PI / 180;
-        }
+        double to_radians(double angle);
 };
+

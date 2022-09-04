@@ -57,13 +57,15 @@ int main(){
 		 */
 
 		if (youBotHasArm) {
-			std::vector<double> theta_array_goal = {0,0,0,0,0};
+			std::vector<double> theta_array_goal = {-M_PI/2, -M_PI/6, M_PI/4,  M_PI/4, 0};
+			double orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
 			std::vector<double> coor = arm_kinematics.get_coors(arm_kinematics.forward(theta_array_goal));
 			std::cout << "coor = " << std::endl;
 				for(size_t i = 0; i < 3; i++)
 		            std::cout << coor.at(i) << std::endl;
 			try{
-				std::vector<double> theta_array = arm_kinematics.inverse(coor, ALBOW_UP, ALBOW_UP, 0, M_PI/4);
+				std::vector<double> theta_array = arm_kinematics.inverse(coor, ALBOW_UP, ALBOW_UP, abs(orient), 0);
+
 				std::cout << "Theta array = " << std::endl;
 				for(size_t i = 0; i < 5; i++)
 		            std::cout << theta_array.at(i) << std::endl;
@@ -71,10 +73,15 @@ int main(){
 				std::cout << "done" << std::endl;
 				myYouBotManipulator->setJointData(arm_kinematics.get_youbot_angles(theta_array));
 				SLEEP_MILLISEC(2000);
+
+				theta_array.clear();
 			}
 			catch(const char* msg) {
 				std::cout << msg << std::endl;
-			}		
+			}
+
+			theta_array_goal.clear();
+			coor.clear();
 		}
         } catch (std::exception& e) {
 		std::cout << e.what() << std::endl;
