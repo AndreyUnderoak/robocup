@@ -70,7 +70,7 @@ int main(){
 		            std::cout << coor.at(i) << std::endl;
 			try{
 				//get inverse theta array
-				std::vector<double> theta_array = arm_kinematics.inverse(coor, ALBOW_DOWN, ALBOW_UP, abs(orient), M_PI/4);
+				std::vector<double> theta_array = arm_kinematics.inverse(coor, ALBOW_DOWN, ALBOW_UP, abs(orient), 0);
 
 				std::cout << "Theta array = " << std::endl;
 				for(size_t i = 0; i < 5; i++)
