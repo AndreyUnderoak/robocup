@@ -1,6 +1,7 @@
 #include "../include/arm_kinematics.hpp"
 
-Arm_kinematics::Arm_kinematics(){
+Arm_kinematics::Arm_kinematics()
+{
 
 	//---------YOUBOT PARAMETERS START------------
 	this->links_length = {0.033, 0.147, 0.155, 0.135, 0.2175};

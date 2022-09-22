@@ -1,112 +1,73 @@
-#include "main.h"
+#include <ompl/base/SpaceInformation.h>
+#include <ompl/base/spaces/SE3StateSpace.h>
+#include <ompl/geometric/planners/rrt/RRTConnect.h>
+#include <ompl/geometric/SimpleSetup.h>
+  
+#include <ompl/config.h>
+#include <iostream>
+
+namespace ob = ompl::base;
+namespace og = ompl::geometric;
+
+bool isStateValid(const ob::State *state){
+     // cast the abstract state type to the type we expect
+     const auto *se3state = state->as<ob::SE3StateSpace::StateType>();
+  
+     // extract the first component of the state and cast it to what we expect
+     const auto *pos = se3state->as<ob::RealVectorStateSpace::StateType>(0);
+  
+     // extract the second component of the state and cast it to what we expect
+     const auto *rot = se3state->as<ob::SO3StateSpace::StateType>(1);
+     
+     // return a value that is always true but uses the two variables we define, so we avoid compiler warnings
+     return (const void*)rot != (const void*)pos;
+}
+
+int main()
+{
+    auto space(std::make_shared<ob::SE3StateSpace>());
+
+    ob::RealVectorBounds bounds(3);
+    bounds.setLow(-1);
+    bounds.setHigh(1);
+
+    space->setBounds(bounds);
+
+    auto si(std::make_shared<ob::SpaceInformation>(space));
 
 
+    si->setStateValidityChecker(isStateValid);
 
-int main(){
-    /* configuration flags for different system configuration (e.g. base without arm)*/
-    bool youBotHasBase = false;
-    bool youBotHasArm = false;
+    ob::ScopedState<> start(space);
+    start.random();
 
-    /* define velocities */
-	double translationalVelocity = 0.05; //meter_per_second
-	double rotationalVelocity = 0.2; //radian_per_second
+    ob::ScopedState<> goal(space);
+    goal.random();
 
-	/* create handles for youBot base and manipulator (if available) */
-	YouBotBase* myYouBotBase = 0;
-	YouBotManipulator* myYouBotManipulator = 0;
+    auto pdef(std::make_shared<ob::ProblemDefinition>(si));
 
-	//kinematics
-	Arm_kinematics arm_kinematics;
+    pdef->setStartAndGoalStates(start, goal);
 
-    try {
-		myYouBotBase = new YouBotBase("youbot-base", YOUBOT_CONFIGURATIONS_DIR);
-		myYouBotBase->doJointCommutation();
+    auto planner(std::make_shared<og::RRTConnect>(si));
 
-		youBotHasBase = true;
-	} catch (std::exception& e) {
-		LOG(warning) << e.what();
-		youBotHasBase = false;
-	}
+    planner->setProblemDefinition(pdef);
 
-	try {
-		myYouBotManipulator = new YouBotManipulator("youbot-manipulator", YOUBOT_CONFIGURATIONS_DIR);
-		myYouBotManipulator->doJointCommutation();
-		myYouBotManipulator->calibrateManipulator();
+    planner->setup();
 
-		youBotHasArm = true;
-	} catch (std::exception& e) {
-		LOG(warning) << e.what();
-		youBotHasArm = false;
-	}
+    si->printSettings(std::cout);
+
+    pdef->print(std::cout);
+  
+     // attempt to solve the problem within one second of planning time
+    ob::PlannerStatus solved = planner->ob::Planner::solve(1.0);
 
 
-    /*
-	* Variable for the base.
-	* Here "boost units" is used to set values in OODL, that means you have to set a value and a unit.
-	*/
-	quantity<si::velocity> longitudinalVelocity = 0 * meter_per_second;
-	quantity<si::velocity> transversalVelocity = 0 * meter_per_second;
-	quantity<si::angular_velocity> angularVelocity = 0 * radian_per_second;
-
-	/* Variable for the arm. */
-	JointAngleSetpoint desiredJointAngle;
-
-	try {
-		/*
-		 * Simple sequence of commands to the youBot:
-		 */
-
-		if (youBotHasArm) {
-			//goal theta array
-			std::vector<double> theta_array_goal = {-M_PI/2, -M_PI/6, M_PI/4,  M_PI/4, 0};
-
-			//orientation
-			double orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
-
-			//get forward goal coors by goal theta array
-			std::vector<double> coor = arm_kinematics.get_coors(arm_kinematics.forward(theta_array_goal));
-			std::cout << "coor = " << std::endl;
-				for(size_t i = 0; i < 3; i++)
-		            std::cout << coor.at(i) << std::endl;
-			try{
-				//get inverse theta array
-				std::vector<double> theta_array = arm_kinematics.inverse(coor, ALBOW_DOWN, ALBOW_UP, abs(orient), 0);
-
-				std::cout << "Theta array = " << std::endl;
-				for(size_t i = 0; i < 5; i++)
-		            std::cout << theta_array.at(i) << std::endl;
-
-				std::cout << "done" << std::endl;
-
-				//send
-				myYouBotManipulator->setJointData(arm_kinematics.get_youbot_angles(theta_array));
-				SLEEP_MILLISEC(2000);
-
-				theta_array.clear();
-			}
-			catch(const char* msg) {
-				std::cout << msg << std::endl;
-			}
-
-			theta_array_goal.clear();
-			coor.clear();
-		}
-        } catch (std::exception& e) {
-		std::cout << e.what() << std::endl;
-		std::cout << "unhandled exception" << std::endl;
-	}
-
-	/* clean up */
-	if (myYouBotBase) {
-		delete myYouBotBase;
-		myYouBotBase = 0;
-	}
-	if (myYouBotManipulator) {
-		delete myYouBotManipulator;
-		myYouBotManipulator = 0;
-	}
-
-	LOG(info) << "Done.";
-
-	return 0;
+     if (solved)
+    {
+        ob::PathPtr path = pdef->getSolutionPath();
+        std::cout << "Found solution:" << std::endl;
+        path->print(std::cout);
+    }
+    else
+         std::cout << "No solution found" << std::endl;
 }

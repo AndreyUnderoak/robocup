@@ -1,6 +1,5 @@
 #pragma once
 
-#include "youbot_driver/youbot/YouBotBase.hpp"
 #include "youbot_driver/youbot/YouBotManipulator.hpp"
 #include <math.h>
 #include <stdio.h>
