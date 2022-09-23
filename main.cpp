@@ -56,7 +56,26 @@ int main(){
 		 * Simple sequence of commands to the youBot:
 		 */
 
+		std::vector<double> theta_array_goal = {0, 0, 0, 0, 0};
+
+		//orientation
+		double orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
+
+		//get forward goal coors by goal theta array
+		std::vector<double> coor = arm_kinematics.get_coors(arm_kinematics.forward(theta_array_goal));
+		std::cout << "coor = " << std::endl;
+
+		for(size_t i = 0; i < 3; i++)
+			std::cout << coor.at(i) << std::endl;
+		//get inverse theta array
+		std::vector<double> theta_array = arm_kinematics.inverse(coor, ALBOW_UP, ALBOW_UP, abs(orient), 0);
+
+		std::cout << "done" << std::endl;
+
+		theta_array.clear();
+
 		if (youBotHasArm) {
+			/*
 			//goal theta array
 			std::vector<double> theta_array_goal = {0, 0, 0, 0, 0};
 
@@ -72,21 +91,22 @@ int main(){
 				//get inverse theta array
 				std::vector<double> theta_array = arm_kinematics.inverse(coor, ALBOW_UP, ALBOW_UP, abs(orient), 0);
 
-				std::cout << "Theta array =" << std::endl;
-				for(size_t i = 0; i < 5; i++)
-		            std::cout << theta_array.at(i) << std::endl;
+				// std::cout << "Theta array =" << std::endl;
+				// for(size_t i = 0; i < 5; i++)
+		        //     std::cout << theta_array.at(i) << std::endl;
 
 				std::cout << "done" << std::endl;
 
 				//send
-				myYouBotManipulator->setJointData(arm_kinematics.get_youbot_angles(theta_array));
+				// myYouBotManipulator->setJointData(arm_kinematics.get_youbot_angles(theta_array));
 				SLEEP_MILLISEC(3000);
 
 				theta_array.clear();
+				
 			}
 			catch(const char* msg) {
 				std::cout << msg << std::endl;
-			}
+			}*/
 
 			theta_array_goal.clear();
 			coor.clear();

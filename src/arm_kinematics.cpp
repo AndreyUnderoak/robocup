@@ -47,6 +47,14 @@ std::vector<double> Arm_kinematics::inverse(std::vector<double> coordinates, uin
 	theta_array.push_back( theta_2(p, - theta_array.at(0), conf_t_1, conf_t_3));
 	theta_array.push_back( theta_3(p, - theta_array.at(0), conf_t_1, conf_t_3));
 
+	std::vector<double> theta_array_s = theta_array;
+	//---------------S-----------------
+	double phis = phi(r05, p, theta_array_s.at(0));
+	theta_array_s.push_back(theta_4_s(phis,  theta_array_s.at(1),  theta_array_s.at(2)));
+	theta_array_s.push_back(theta_5_s(phis, r05, p, theta_array_s.at(1), theta_array_s.at(2)));
+	//---------------S END------------
+
+	//---------------AN------------------
 	//R35
 	Matrix<double, 3, 3> r35 = inverse_orientation(theta_array, r05);
 
@@ -54,12 +62,28 @@ std::vector<double> Arm_kinematics::inverse(std::vector<double> coordinates, uin
 	theta_array.push_back(theta_4(r35));
 	theta_array.push_back(theta_5(r35));
 
-	for(size_t i = 0; i < 5; i++)
-		if(!(this->joints.at(i).in_range(theta_array.at(i))))
-			throw "ERROR: out of joints range";
+	// for(size_t i = 0; i < 5; i++)
+	// 	if(!(this->joints.at(i).in_range(theta_array.at(i))))
+	// 		throw "ERROR: out of joints range";
+
+	//------------AN END----------------
 
 	p.clear();
 
+	std::cout << "-----------------------" << std::endl;
+
+	std::cout << "ANDREY_NANCY OZK  = " << std::endl;
+
+	for(size_t i = 0; i < 5; i++)
+		std::cout << theta_array.at(i) << std::endl;
+	
+	std::cout << "SASHA OZK   =  " << std::endl;
+	
+	for(size_t i = 0; i < 5; i++)
+		std::cout << theta_array_s.at(i) << std::endl;
+
+	std::cout << "-----------------------" << std::endl;
+	
 	return theta_array;
 }
 
@@ -150,8 +174,8 @@ double Arm_kinematics::theta_3(std::vector<double> coordinates, double theta_1, 
 	double p_square =   (xp - this->links_length.at(0))*(xp - this->links_length.at(0)) + (coordinates.at(Z_COOR) - this->links_length.at(1))*(coordinates.at(Z_COOR) - this->links_length.at(1));
 	double cosT_3   = - (this->links_length.at(2)*(this->links_length.at(2)) + this->links_length.at(3)*(this->links_length.at(3)) - p_square) / (2 * (this->links_length.at(2)) * (this->links_length.at(3)));
 	
-	if (abs(cosT_3) > 1.0001)
-		throw "ERROR: out of links range";
+	// if (abs(cosT_3) > 1.0001)
+	// 	throw "ERROR: out of links range";
 	if (abs(cosT_3) > 1)
 		cosT_3 = round(cosT_3);
 	if (conf_t_1 == 1){
@@ -175,7 +199,39 @@ double Arm_kinematics::theta_4(Matrix<double, 3, 3> r35){
 double Arm_kinematics::theta_5(Matrix<double, 3, 3> r35){
 	return atan2(r35(2,0), r35(2,1));
 }
+// ----------------------------FUNCTIONS FOR S--------------------------------------------------------
+double Arm_kinematics::phi(Matrix<double, 3, 3> r, std::vector<double> p, double theta_1){
+	std::vector<double> z5;
+	std::vector<double> z0 = {0,0,1};
+	z5[0] = r(0,2);
+	z5[1] = r(1,2);
+	z5[2] = r(2,2);
+	Matrix<double, 3, 3> Rz0 = Matrix3d::Zero();
+	Rz0(0,0) =   cos(theta_1);
+	Rz0(0,1) = - sin(theta_1);
+	Rz0(1,0) =   sin(theta_1);
+	Rz0(1,1) =   cos(theta_1);
+	Rz0(2,2) =   1;
+	std::vector<double> z5 = Rz0 * z5;
+	double cosphi = for(i=0; i < 3; i++) res+=z5[i] * z0[i];
+	double sinphi = sqrt(1 - cosphi*cosphi)*-((z5[0] > 0) - (z5[0] < 0));
+	double phi  = atan2(sinphi, cosphi);
+	double phi_temp = phi;
+	if (phi_temp == 0) phi = m.pi / 2
+    if (phi_temp == m.pi) || (phi_temp == -m.pi) phi = -m.pi / 2
+	if (phi_temp < 0) phi_temp = -phi_temp;
+	phi = M_PI/2 - phi_temp;
+	return phi;
+}
 
+double Arm_kinematics::theta_4_s(double phi, double theta_2, double theta_3){
+	return 1;
+}
+
+double Arm_kinematics::theta_5_s(double phi, Matrix<double, 3, 3> r, std::vector<double> p, double theta_2, double theta_3){
+	return 1;
+}
+//--------------------------FUNCTIONS FOR S END----------------------------------------------
 Matrix<double, 3, 3> Arm_kinematics::orientation(double ee_y_orientation, double theta_1, double ee_z_orientation, uint8_t conf_t_1){
 	theta_1 = -theta_1;
 	if (conf_t_1 == ALBOW_DOWN)

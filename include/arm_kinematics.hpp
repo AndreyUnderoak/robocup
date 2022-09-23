@@ -5,8 +5,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <termios.h>
+#include <ctime>
+
 
 #include <eigen3/Eigen/Dense>
+
+#define SEC_TO_MICROSEC 1000000
 
 using namespace Eigen;
 using namespace youbot;
@@ -77,5 +81,11 @@ class Arm_kinematics{
         Matrix<double, 3, 3> inverse_orientation(std::vector<double> theta_array, Matrix<double, 3, 3> r05);
 
         double to_radians(double angle);
+
+        double phi(Matrix<double, 3, 3> r, std::vector<double> p, double theta_1);
+
+        double theta_4_s(double phi, double theta_2, double theta_3);
+
+        double theta_5_s(double phi, Matrix<double, 3, 3> r, std::vector<double> p, double theta_2, double theta_3);
 };
 
