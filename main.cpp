@@ -60,6 +60,7 @@ int main(){
 			//goal theta array
 			std::vector<double> theta_array_goal = {0, 0, 0, 0, 0};
 
+			//
 			//orientation
 			double orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
 
