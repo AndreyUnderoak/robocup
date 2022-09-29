@@ -37,7 +37,8 @@ class Arm_kinematics{
         Arm_kinematics();
 
         Matrix<double, 4, 4>            forward(std::vector<double> theta_array);
-        std::vector<double>             inverse(std::vector<double> coordinates, uint8_t conf_t_1, uint8_t conf_t_3, double ee_y_orientation, double ee_z_orientation);
+        Matrix<double, 4, 4>            forward_1(std::vector<double> theta_array);
+        std::vector<double>             inverse(boost::posix_time::time_duration * time_diff_array, std::vector<double> coordinates, uint8_t conf_t_1, uint8_t conf_t_3, double ee_y_orientation, double ee_z_orientation);
         std::vector<JointAngleSetpoint> get_youbot_angles(std::vector<double> theta_array);
         
         Arm_angles                      inverse_get_all(std::vector<double> coordinates, double ee_y_orientation, double ee_z_orientation);
@@ -64,7 +65,9 @@ class Arm_kinematics{
 
         //A & H matrix for FORWARD
         Matrix<double, 4, 4> a_matrix(double theta, size_t link_num);
+        Matrix<double, 4, 4> a_matrix_1(double a, double alpha, double d, double theta, double offset);
         Matrix<double, 4, 4> h_matrix(std::vector<double> theta_array, size_t start, size_t finish);
+        Matrix<double, 4, 4> h_matrix_1(std::vector<double> theta_array);
         std::vector<double> get_coors(Matrix<double, 4, 4> h_matrix);
 
         //Thetas for INVERSE
@@ -82,10 +85,12 @@ class Arm_kinematics{
 
         double to_radians(double angle);
 
+        Matrix<double, 3, 1> get_z5(Matrix<double, 3, 3> r, double theta_1);
+
         double phi(Matrix<double, 3, 3> r, std::vector<double> p, double theta_1);
 
-        double theta_4_s(double phi, double theta_2, double theta_3);
+        double theta_4_s(Matrix<double, 3, 3> r, double phi, double theta_1, double theta_2, double theta_3);
 
-        double theta_5_s(double phi, Matrix<double, 3, 3> r, std::vector<double> p, double theta_2, double theta_3);
+        double theta_5_s(Matrix<double, 3, 3> r, double theta_1, double theta_2, double theta_3, double theta_4);
 };
 
