@@ -56,32 +56,52 @@ int main(){
 		 * Simple sequence of commands to the youBot:
 		 */
 
-		std::vector<double> theta_array_goal = {1, 0, 0, 0, 0};
+		std::vector<double> theta_array_goal = {0.5, 0.5, 0.5, 0.5, 0.5};
 
-		//orientation
-		double orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
+		// //orientation
+		// double orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
 
 		//get forward goal coors by goal theta array
 		std::vector<double> coor = arm_kinematics.get_coors(arm_kinematics.forward(theta_array_goal));
 		std::cout << "coor = " << std::endl;
 		std::vector<double> coor_s = arm_kinematics.get_coors(arm_kinematics.forward_1(theta_array_goal));
 
-		for(size_t i = 0; i < 3; i++)
-			std::cout << coor.at(i) << std::endl;
+		// for(size_t i = 0; i < 3; i++)
+		// 	std::cout << coor.at(i) << std::endl;
 
-		boost::posix_time::time_duration time_diff_array[2];
-		std::cout << "coor_s = " << std::endl;
-		for(size_t i = 0; i < 3; i++)
-			std::cout << coor_s.at(i) << std::endl;
-		// сравнение forward и forward_1	
-		std::cout << arm_kinematics.forward(theta_array_goal) << std::endl;
-		std::cout << arm_kinematics.forward_1(theta_array_goal) << std::endl;
+		// boost::posix_time::time_duration time_diff_array[2];
+		// std::cout << "coor_s = " << std::endl;
+		// for(size_t i = 0; i < 3; i++)
+		// 	std::cout << coor_s.at(i) << std::endl;
+		// сравнение forward и forward_1
+		Matrix<double, 4, 4> T_S = arm_kinematics.forward_1(theta_array_goal);
+		
 		//get inverse theta array
-		std::vector<double> theta_array = arm_kinematics.inverse(time_diff_array, coor, ALBOW_UP, ALBOW_UP, abs(orient), 0);
+		double orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
+		//Theta 1
+		double t1 = - (arm_kinematics.theta_1(coor.at(X_COOR), coor.at(Y_COOR), ALBOW_UP));
+		//R05
+		Matrix<double, 3, 3> r05 = arm_kinematics.orientation(orient, t1, theta_array_goal.at(4), ALBOW_UP);
+		
+		//TIME
+		std::vector<double> theta_array = arm_kinematics.inverse(r05, coor, ALBOW_UP, ALBOW_UP, abs(orient), theta_array_goal.at(4));
+		//TIME
 
+		Matrix<double, 3, 3> r05_s = arm_kinematics.get_r(T_S);
+
+		//TIME
+		std::vector<double> theta_array_S = arm_kinematics.inverse_1(r05_s, coor_s, ALBOW_UP, ALBOW_UP);
+		//TIME
+		
+		std::cout << "AN THETA --------------------------------------" << std::endl;
+		for(size_t i = 0; i < 5; i++)
+			std::cout << theta_array.at(i) << std::endl;
+		std::cout << "S THETA ---------------------------------------" << std::endl;
+		for(size_t i = 0; i < 5; i++)
+			std::cout << theta_array_S.at(i) << std::endl;
 		std::cout << "done" << std::endl;
 		
-		theta_array.clear();
+		//theta_array.clear();
 
 		if (youBotHasArm) {
 			/*

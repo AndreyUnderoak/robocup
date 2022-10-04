@@ -35,14 +35,14 @@ Matrix<double, 4, 4> Arm_kinematics::forward_1(std::vector<double> theta_array){
 }
 
 
-std::vector<double> Arm_kinematics::inverse(boost::posix_time::time_duration * time_diff_array, std::vector<double> coordinates, uint8_t conf_t_1, uint8_t conf_t_3, double ee_y_orientation, double ee_z_orientation){
+std::vector<double> Arm_kinematics::inverse(Matrix<double, 3, 3> r05, std::vector<double> coordinates, uint8_t conf_t_1, uint8_t conf_t_3, double ee_y_orientation, double ee_z_orientation){
 	std::vector<double> theta_array;
 
 	//Theta 1
 	theta_array.push_back(- (theta_1(coordinates.at(X_COOR), coordinates.at(Y_COOR), conf_t_1)));
 	
-	//R05
-	Matrix<double, 3, 3> r05 = orientation(ee_y_orientation, theta_array.at(0), ee_z_orientation, conf_t_1);
+	// //R05
+	// Matrix<double, 3, 3> r05 = orientation(ee_y_orientation, theta_array.at(0), ee_z_orientation, conf_t_1);
 
 	//Go to P
 	std::vector<double> p = get_p(coordinates, r05);
@@ -51,24 +51,6 @@ std::vector<double> Arm_kinematics::inverse(boost::posix_time::time_duration * t
 	theta_array.push_back( theta_2(p, - theta_array.at(0), conf_t_1, conf_t_3));
 	theta_array.push_back( theta_3(p, - theta_array.at(0), conf_t_1, conf_t_3));
 
-	std::vector<double> theta_array_s = theta_array;
-	//---------------S-----------------
-	boost::posix_time::ptime timer_start_s  = boost::posix_time::microsec_clock::local_time();
-
-	std::cout << "LOOOL 1" << std::endl;
-	double phis = phi(r05, p, theta_array_s.at(0));
-	std::cout << "phi" << phis *180/M_PI << std::endl;
-	theta_array_s.push_back(theta_4_s(r05, phis, theta_array_s.at(0),  theta_array_s.at(1),  theta_array_s.at(2)));
-	std::cout << "LOOOL 3" << std::endl;
-	theta_array_s.push_back(theta_5_s(r05, theta_array_s.at(0), theta_array_s.at(1), theta_array_s.at(2), theta_array_s.at(3)));
-	std::cout << "LOOOL 4" << std::endl;
-
-	boost::posix_time::ptime timer_end_s  = boost::posix_time::microsec_clock::local_time();
-	//---------------S END------------
-	time_diff_array[0] = timer_end_s - timer_start_s;
-
-
-	//---------------AN------------------
 	boost::posix_time::ptime timer_start_an  = boost::posix_time::microsec_clock::local_time();
 
 	//R35
@@ -82,39 +64,44 @@ std::vector<double> Arm_kinematics::inverse(boost::posix_time::time_duration * t
 	// 	if(!(this->joints.at(i).in_range(theta_array.at(i))))
 	// 		throw "ERROR: out of joints range";
 
-	boost::posix_time::ptime timer_end_an  = boost::posix_time::microsec_clock::local_time();
-	//------------AN END----------------
-	time_diff_array[1] = timer_end_an - timer_start_an;
 
 	p.clear();
 
+	return theta_array;
+}
+std::vector<double> Arm_kinematics::inverse_AN(Matrix<double, 4, 4> T, std::vector<double> theta_array_goal, uint8_t conf_t_1, uint8_t conf_t_3){
+	std::vector<double> coor = get_coors(T);
+	// double orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
+
+	// //Theta 1
+	// double t1 = - (theta_1(coordinates.at(X_COOR), coordinates.at(Y_COOR), conf_t_1));
 	
-	
+	// //R05
+	// Matrix<double, 3, 3> r05 = orientation(ee_y_orientation, t1, ee_z_orientation, conf_t_1);
 
-	std::cout << "-----------------------" << std::endl;
+	// std::vector<double> theta_array = inverse(r05, coor, ALBOW_UP, ALBOW_UP, abs(orient), theta_array_goal.at(4));
+	return coor;
+}
 
-	std::cout << "ANDREY_NANCY OZK  = " << std::endl;
+std::vector<double> Arm_kinematics::inverse_1(Matrix<double, 3, 3> r05, std::vector<double> coors, uint8_t conf_t_1, uint8_t conf_t_3) {
+	std::vector<double> theta_array;
+	// THETA 1
+	double theta_1 = theta_1_s(coors[0], coors[1], conf_t_1);
+	theta_array.push_back(theta_1);
 
-	for(size_t i = 0; i < 5; i++)
-		std::cout << theta_array.at(i) << std::endl;
-
-	std::cout << "\n time = " << time_diff_array[1].total_microseconds() << std::endl;
-	
-	std::cout << "\n time = " << timer_start_an << std::endl;
-	std::cout << "\n time = " << timer_end_an << std::endl;
-
-
-	std::cout << "SASHA OZK   =  " << std::endl;
-	
-	for(size_t i = 0; i < 5; i++)
-		std::cout << theta_array_s.at(i) << std::endl;
-
-	std::cout << "\n time = " << time_diff_array[0].total_microseconds() << std::endl;
-
-	std::cout << "\n time = " << timer_start_s << std::endl;
-	std::cout << "\n time = " << timer_end_s << std::endl;
-
-	std::cout << "-----------------------" << std::endl;
+	// PHI
+	double phi = Arm_kinematics::phi(r05, coors, theta_1);
+	std::cout << " phi = " << phi << std::endl;
+	// THETA 2 and 3
+	std::vector<double> t23 = Arm_kinematics::theta_23_s(r05, coors, theta_1, conf_t_3);
+	theta_array.push_back(t23[0]);
+	theta_array.push_back(t23[1]);
+	// THETA 4
+	double theta_4 = theta_4_s(r05, phi, theta_1, t23[0], t23[1]);
+	theta_array.push_back(theta_4);
+	// THETA 5
+	double theta_5 = theta_5_s(r05, theta_1, t23[0], t23[1], theta_4);
+	theta_array.push_back(theta_5);
 
 	return theta_array;
 }
@@ -171,21 +158,6 @@ Matrix<double, 4, 4> Arm_kinematics::a_matrix(double theta, size_t link_num){
 
 	return m;
 };
-// SASHA DH PARAMETERS ---------------------------------------------------------------------------
-std::vector<double> as = {33, 155, 135, 0, 0};
-std::vector<double> alphas = {M_PI/2, 0, 0, M_PI/2, M_PI};
-std::vector<double> ds = {-147, 0, 0, 0, 217}; 
-std::vector<double> offsets = {0, -M_PI/2, 0, M_PI/2, M_PI/2};
-// -------------------------------------------------------------------------------------------------
-Matrix<double, 4, 4> Arm_kinematics::a_matrix_1(double a, double alpha, double d, double theta, double offset){
-	double newtheta = theta + offset;
-	Matrix<double, 4, 4> A;
-	A << cos(newtheta), -sin(newtheta)*cos(alpha), sin(newtheta)*sin(alpha), a*cos(newtheta),
-	     sin(newtheta), cos(newtheta)*cos(alpha), -cos(newtheta)*sin(alpha), a*sin(newtheta),
-		 0,             sin(alpha),                cos(alpha),               d,
-		 0,             0,                         0,                        1;
-	return A;
-}
 
 Matrix<double, 4, 4> Arm_kinematics::h_matrix(std::vector<double> theta_array, size_t start, size_t finish){
 	Matrix<double, 4, 4> m = this->a_matrix( - theta_array.at(start), start);
@@ -196,14 +168,6 @@ Matrix<double, 4, 4> Arm_kinematics::h_matrix(std::vector<double> theta_array, s
 	return m;
 };
 
-Matrix<double, 4, 4> Arm_kinematics::h_matrix_1(std::vector<double> theta_array){
-	Matrix<double, 4, 4> A1 = this->a_matrix_1(as[0], alphas[0], ds[0], theta_array[0], offsets[0]);
-	Matrix<double, 4, 4> A2 = this->a_matrix_1(as[1], alphas[1], ds[1], theta_array[1], offsets[1]);
-	Matrix<double, 4, 4> A3 = this->a_matrix_1(as[2], alphas[2], ds[2], theta_array[2], offsets[2]);
-	Matrix<double, 4, 4> A4 = this->a_matrix_1(as[3], alphas[3], ds[3], theta_array[3], offsets[3]);
-	Matrix<double, 4, 4> A5 = this->a_matrix_1(as[4], alphas[4], ds[4], theta_array[4], offsets[4]);
-	return A1*A2*A3*A4*A5;
-};
 
 
 double Arm_kinematics::theta_1(double x, double y, uint8_t conf_t_1){
@@ -215,9 +179,9 @@ double Arm_kinematics::theta_1(double x, double y, uint8_t conf_t_1){
 			return (t_1 + M_PI);
 		else	
 			return (t_1 - M_PI); 
-	}
-		
+	}	
 }
+
 double Arm_kinematics::theta_2(std::vector<double> coordinates, double theta_1, uint8_t conf_t_1, uint8_t conf_t_3){
 	double xp       = coordinates.at(X_COOR) * cos(theta_1) + coordinates.at(Y_COOR) * sin(theta_1);
 	double t_3_temp = theta_3(coordinates, theta_1, conf_t_1, conf_t_3);
@@ -248,6 +212,7 @@ double Arm_kinematics::theta_3(std::vector<double> coordinates, double theta_1, 
 			return - atan2(sqrt(1 - cosT_3*cosT_3), cosT_3);
 	}
 }
+
 double Arm_kinematics::theta_4(Matrix<double, 3, 3> r35){
 	return atan2(r35(0,2), -r35(1,2)) + M_PI/2;
 }
@@ -255,20 +220,49 @@ double Arm_kinematics::theta_4(Matrix<double, 3, 3> r35){
 double Arm_kinematics::theta_5(Matrix<double, 3, 3> r35){
 	return atan2(r35(2,0), r35(2,1));
 }
+// SASHA DH PARAMETERS ---------------------------------------------------------------------------
+std::vector<double> as = { 33, 155, 135, 0, 0 };
+std::vector<double> alphas = { M_PI / 2, 0, 0, M_PI / 2, M_PI };
+std::vector<double> ds = { -147, 0, 0, 0, 217 };
+std::vector<double> offsets = { 0, -M_PI / 2, 0, M_PI / 2, M_PI / 2 };
+// -------------------------------------------------------------------------------------------------
+
 // ----------------------------FUNCTIONS FOR S--------------------------------------------------------
+Matrix<double, 4, 4> Arm_kinematics::a_matrix_1(double a, double alpha, double d, double theta, double offset) {
+	double newtheta = theta + offset;
+	Matrix<double, 4, 4> A;
+	A << cos(newtheta), -sin(newtheta) * cos(alpha), sin(newtheta)* sin(alpha), a* cos(newtheta),
+		sin(newtheta), cos(newtheta)* cos(alpha), -cos(newtheta) * sin(alpha), a* sin(newtheta),
+		0, sin(alpha), cos(alpha), d,
+		0, 0, 0, 1;
+	return A;
+}
+Matrix<double, 4, 4> Arm_kinematics::h_matrix_1(std::vector<double> theta_array) {
+	Matrix<double, 4, 4> A1 = this->a_matrix_1(as[0], alphas[0], ds[0], theta_array[0], offsets[0]);
+	Matrix<double, 4, 4> A2 = this->a_matrix_1(as[1], alphas[1], ds[1], theta_array[1], offsets[1]);
+	Matrix<double, 4, 4> A3 = this->a_matrix_1(as[2], alphas[2], ds[2], theta_array[2], offsets[2]);
+	Matrix<double, 4, 4> A4 = this->a_matrix_1(as[3], alphas[3], ds[3], theta_array[3], offsets[3]);
+	Matrix<double, 4, 4> A5 = this->a_matrix_1(as[4], alphas[4], ds[4], theta_array[4], offsets[4]);
+	return A1 * A2 * A3 * A4 * A5;
+};
+Matrix<double, 3, 3> Arm_kinematics::get_r(Matrix<double, 4, 4> T) {
+	Matrix<double, 3, 3> r;
+	r << T(0, 0), T(0, 1), T(0, 2),
+		T(1, 0), T(1, 1), T(1, 2),
+		T(2, 0), T(2, 1), T(2, 2);
+	return r;
+}
 Matrix<double, 3, 1> Arm_kinematics::get_z5(Matrix<double, 3, 3> r, double theta_1){
     Matrix<double, 3, 1> z5;
     z5(0,0) = r(0,2);
     z5(1,0) = r(1,2);
     z5(2,0) = r(2,2);
-    Matrix<double, 3, 3> Rz0 = Matrix3d::Zero();
-    Rz0(0,0) =   cos(theta_1);
-    Rz0(0,1) = - sin(theta_1);
-    Rz0(1,0) =   sin(theta_1);
-    Rz0(1,1) =   cos(theta_1);
-    Rz0(2,2) =   1;
-    z5 = Rz0 * z5;
-    return z5;
+	Matrix<double, 3, 3> Rz0;
+	Rz0 << cos(-theta_1), -sin(-theta_1), 0,
+		sin(-theta_1), cos(-theta_1), 0,
+		0, 0, 1;
+	Matrix<double, 3, 1> z5_rotated = Rz0 * z5;
+    return z5_rotated;
 }
 double Arm_kinematics::phi(Matrix<double, 3, 3> r, std::vector<double> p, double theta_1){
     Matrix<double, 3, 1> z5 = get_z5(r, theta_1);
@@ -289,6 +283,49 @@ double Arm_kinematics::phi(Matrix<double, 3, 3> r, std::vector<double> p, double
 	
     return phi;
 }
+double Arm_kinematics::theta_1_s(double x, double y, uint8_t conf_t_1) {
+	double theta_1 = atan2(y, x);
+	if (conf_t_1 == ALBOW_DOWN) {
+		if (theta_1 < 0) {
+			theta_1 += M_PI;
+		}
+		else {
+			theta_1 -= M_PI;
+		}
+	}
+	return theta_1;
+}
+std::vector<double> Arm_kinematics::theta_23_s(Matrix<double, 3, 3> r, std::vector<double> p, double theta_1, uint8_t conf_t_3) {
+	Matrix<double, 3, 1> z5 = get_z5(r, theta_1);
+	std::cout << " z5 = " << z5 << std::endl;
+	double phi = Arm_kinematics::phi(r, p, theta_1);
+	double x_new = cos(-theta_1) * p[0] - sin(-theta_1) * p[1];
+	std::vector<double> x_axis = { cos(theta_1), sin(theta_1), 0 };
+	double xw;
+	if (z5(0, 0) < 0) {
+		xw = x_new - ds[4] * cos(phi);
+	}
+	else {
+		xw = x_new + ds[4] * cos(phi);
+	}
+	double zw = p[2] + ds[4] * sin(phi) - ds[0];
+	double d = sqrt(zw * zw + (xw - as[0]) * (xw - as[0]));
+	double ct3 = (d * d - as[1] * as[1] - as[2] * as[2]) / (2 * as[1] * as[2]);
+	std::cout << " cos(theta3) = " << ct3 << std::endl;
+	double st3;
+	if (conf_t_3 == ALBOW_UP) {
+		st3 = sqrt(1 - ct3 * ct3);
+	}
+	else {
+		st3 = -sqrt(1 - ct3 * ct3);
+	}
+	double theta_3 = atan2(st3, ct3);
+	double alpha = atan2(-zw, xw - as[0]);
+	double beta = -atan2(as[2] * st3, as[1] + as[2] * ct3);
+	double theta_2 = M_PI / 2 - alpha + beta;
+	std::vector<double> theta23 = { theta_2, theta_3 };
+	return theta23;
+}
 double Arm_kinematics::theta_4_s(Matrix<double, 3, 3> r, double phi, double theta_1, double theta_2, double theta_3){
     Matrix<double, 3, 1> z5 = get_z5(r, theta_1);
     double theta_4;
@@ -301,18 +338,19 @@ double Arm_kinematics::theta_4_s(Matrix<double, 3, 3> r, double phi, double thet
 }
 double Arm_kinematics::theta_5_s(Matrix<double, 3, 3> R, double theta_1, double theta_2, double theta_3, double theta_4){
     double theta_5;
-    Matrix<double, 4, 4> A1 = a_matrix(theta_1, 1);
-    Matrix<double, 4, 4> A2 = a_matrix(theta_2, 2);
-    Matrix<double, 4, 4> A3 = a_matrix(theta_3, 3);
-    Matrix<double, 4, 4> A4 = a_matrix(theta_4, 4);
+    Matrix<double, 4, 4> A1 = a_matrix_1(as[0], alphas[0], ds[0], theta_1, offsets[0]);
+    Matrix<double, 4, 4> A2 = a_matrix_1(as[1], alphas[1], ds[1], theta_2, offsets[1]);
+    Matrix<double, 4, 4> A3 = a_matrix_1(as[2], alphas[2], ds[2], theta_3, offsets[2]);
+    Matrix<double, 4, 4> A4 = a_matrix_1(as[3], alphas[3], ds[3], theta_4, offsets[3]);
     Matrix<double, 4, 4> A14 = A1*A2*A3*A4;
-	Matrix<double, 3, 3> R14inv;
-	for(size_t i = 0; i < 3; i++)
-		for(size_t j = 0; j < 3; j++)
-			R14inv(j,i) = A14(i,j);
+	Matrix<double, 3, 3> R14;
+	R14 << A14(0,0), A14(0,1), A14(0,2),
+	       A14(1,0), A14(1,1), A14(1,2),
+		   A14(2,0), A14(2,1), A14(2,2);
+	Matrix<double, 3, 3> R14inv = R14.transpose();  
     Matrix<double, 3, 3> R5 = R14inv*R;
     theta_5 = atan2(R5(1, 0), R5(0, 0)) - M_PI / 2;
-    if (theta_5 == -M_PI) theta_5 = 0;
+    if (abs(abs(theta_5) - M_PI) < 0.01) theta_5 = 0;
     return theta_5;
 }
 //--------------------------FUNCTIONS FOR S END----------------------------------------------
