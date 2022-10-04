@@ -1,5 +1,8 @@
 #include "main.h"
 
+//TIME
+#include <chrono>
+//TIME
 
 
 int main(){
@@ -56,6 +59,14 @@ int main(){
 		 * Simple sequence of commands to the youBot:
 		 */
 
+		//TIME
+		using std::chrono::high_resolution_clock;
+		using std::chrono::duration_cast;
+		using std::chrono::duration;
+		using std::chrono::microseconds;
+		//TIME
+
+
 		std::vector<double> theta_array_goal = {0.5, 0.5, 0.5, 0.5, 0.5};
 
 		// //orientation
@@ -84,25 +95,100 @@ int main(){
 		Matrix<double, 3, 3> r05 = arm_kinematics.orientation(orient, t1, theta_array_goal.at(4), ALBOW_UP);
 		
 		//TIME
+		auto an_start = high_resolution_clock::now();
 		std::vector<double> theta_array = arm_kinematics.inverse(r05, coor, ALBOW_UP, ALBOW_UP, abs(orient), theta_array_goal.at(4));
+		auto an_stop = high_resolution_clock::now();
+		auto an_total = duration_cast<microseconds>(an_stop - an_start);
 		//TIME
 
 		Matrix<double, 3, 3> r05_s = arm_kinematics.get_r(T_S);
 
 		//TIME
+		auto s_start = high_resolution_clock::now();
 		std::vector<double> theta_array_S = arm_kinematics.inverse_1(r05_s, coor_s, ALBOW_UP, ALBOW_UP);
+		auto s_stop = high_resolution_clock::now();
+		auto s_total = duration_cast<microseconds>(s_stop - s_start);
 		//TIME
 		
 		std::cout << "AN THETA --------------------------------------" << std::endl;
 		for(size_t i = 0; i < 5; i++)
 			std::cout << theta_array.at(i) << std::endl;
+		
+		std::cout << "TIME : " << an_total.count() << std::endl;
+		
 		std::cout << "S THETA ---------------------------------------" << std::endl;
 		for(size_t i = 0; i < 5; i++)
 			std::cout << theta_array_S.at(i) << std::endl;
+
+		std::cout << "TIME : " << s_total.count() << std::endl;
+
 		std::cout << "done" << std::endl;
 		
 		//theta_array.clear();
 
+		//TEEEEEEEEEEEEEEEEEEEEEEEST
+		size_t num = 0;
+		uint64_t an_total_summ = 0;
+		uint64_t s_total_summ = 0;
+
+		for(double j1 = -M_PI/2; j1 < M_PI/2; j1 += M_PI/4){
+			for(double j2 = -M_PI/2; j2 < M_PI/2; j2 += M_PI/4){
+				for(double j3 = -M_PI/2; j3 < M_PI/2; j3 += M_PI/4){
+					for(double j4 = -M_PI/2; j4 < M_PI/2; j4 += M_PI/4){
+						for(double j5 = -M_PI/2; j5 < M_PI/2; j5 += M_PI/4){
+							num++;
+
+							theta_array_goal[0] = j1;
+							theta_array_goal[1] = j2;
+							theta_array_goal[2] = j3;
+							theta_array_goal[3] = j4;
+							theta_array_goal[4] = j5;
+							
+							coor = arm_kinematics.get_coors(arm_kinematics.forward(theta_array_goal));
+							coor_s = arm_kinematics.get_coors(arm_kinematics.forward_1(theta_array_goal));
+
+							T_S = arm_kinematics.forward_1(theta_array_goal);
+							
+							//get inverse theta array
+							orient = theta_array_goal.at(1) + theta_array_goal.at(2) + theta_array_goal.at(3);
+							//Theta 1
+							t1 = - (arm_kinematics.theta_1(coor.at(X_COOR), coor.at(Y_COOR), ALBOW_UP));
+							//R05
+							r05 = arm_kinematics.orientation(orient, t1, theta_array_goal.at(4), ALBOW_UP);
+							
+							//TIME
+							an_start = high_resolution_clock::now();
+							theta_array = arm_kinematics.inverse(r05, coor, ALBOW_UP, ALBOW_UP, abs(orient), theta_array_goal.at(4));
+							an_stop = high_resolution_clock::now();
+							an_total = duration_cast<microseconds>(an_stop - an_start);
+							//TIME
+
+							r05_s = arm_kinematics.get_r(T_S);
+
+							//TIME
+							s_start = high_resolution_clock::now();
+							theta_array_S = arm_kinematics.inverse_1(r05_s, coor_s, ALBOW_UP, ALBOW_UP);
+							s_stop = high_resolution_clock::now();
+							s_total = duration_cast<microseconds>(s_stop - s_start);
+							//TIME
+							
+							an_total_summ += an_total.count();
+							s_total_summ += s_total.count();
+						}
+					}
+				}
+			}
+		}
+
+		std::cout << "AFTER " << num << " TESTS" << std::endl;
+
+		std::cout << (an_total_summ < s_total_summ ? "AN" : "S") << " FASTER" << std::endl;
+
+		std::cout << "AN TOTAL TIME : " << an_total_summ << std::endl;
+		std::cout << "S TOTAL TIME : " << s_total_summ << std::endl;
+
+
+		//TEEEEEEEEEEEEEEEEEEEEEEEST EEEEEEEEEEEEEEEND
 		if (youBotHasArm) {
 			/*
 			//goal theta array
